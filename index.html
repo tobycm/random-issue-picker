@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet" />
+
+    <link rel="stylesheet" href="index.css" />
+
+    <title>Random Issue Picker</title>
+  </head>
+  <body>
+    <h1>Random Issue Picker</h1>
+
+    <p>Current open issues: <a id="issues">...</a></p>
+
+    <script>
+      /**
+       * @typedef {{
+       *  name: string,
+       *  issues: number
+       * }} RepoInfo
+       */
+
+      var repoInfo = {
+        name: null,
+        issues: -1,
+      };
+
+      /**
+       * Parses the URL of a GitHub repository.
+       *
+       * @param {string} url The URL of the GitHub repository.
+       * @returns {string} The name of the repository.
+       */
+      function parseUrl(url) {
+        const name = url.match(/(?:git@|https:\/\/)github.com[:\/](.*)/);
+
+        if (name) return name[1].replace(/\.git$/, "");
+        return null;
+      }
+
+      /**
+       * Fetches the number of open issues in a GitHub repository.
+       *
+       * @returns {Promise<number>} The number of open issues in the repository.
+       */
+      async function fetchIssuesCount() {
+        if (repoInfo.name === null) return -1;
+
+        const response = await fetch(`https://api.github.com/repos/${repoInfo.name}/issues?per_page=1`);
+
+        return response.headers.get("Link").match(/page=(\d+)>; rel="last"/)[1];
+      }
+
+      /**
+       * Fetches a random issue from a GitHub repository.
+       *
+       * @returns {Promise<string>} The random issue url.
+       */
+      async function randomIssue() {
+        const page = Math.floor(Math.random() * repoInfo.issues) + 1;
+        const response = await fetch(`https://api.github.com/repos/${repoInfo.name}/issues?per_page=1&page=${page}`);
+
+        const issues = await response.json();
+        const issue = issues[0];
+
+        return issue.html_url;
+      }
+    </script>
+
+    <script>
+      async function onUrlInput() {
+        repoInfo.name = parseUrl(document.querySelector("#url").value);
+        repoInfo.issues = await fetchIssuesCount();
+        document.querySelector("#issues").textContent = repoInfo.issues === -1 ? "..." : repoInfo.issues;
+      }
+    </script>
+
+    <label for="url">Repo URL:</label>
+    <input
+      type="text"
+      id="url"
+      name="url"
+      onkeypress="this.onchange();"
+      onpaste="this.onchange();"
+      oninput="this.onchange();"
+      onchange="onUrlInput()" />
+
+    <button
+      onclick="(async () => {
+        const issue = await randomIssue();
+        window.open(issue, '_blank');
+      })()">
+      Pick random issue
+    </button>
+  </body>
+</html>
