@@ -250,9 +250,11 @@
 
     <br />
 
-    <button style="margin-top: 2vh" onclick="openRandomIssue()">Pick random issue</button>
-    <input type="checkbox" id="openInNewTab" onchange="localStorage.setItem('openInNewTab', this.checked)" />
-    <label for="openInNewTab">Open in new tab</label>
+    <div style="display: flex; align-items: center; margin-top: 2vh">
+      <button onclick="openRandomIssue()">Pick random issue</button>
+      <input style="margin: 0 0 0 2vw" type="checkbox" id="openInNewTab" onchange="localStorage.setItem('openInNewTab', this.checked)" />
+      <label style="margin: 0 0 0 1vw" for="openInNewTab">Open in new tab</label>
+    </div>
 
     <script>
       if (localStorage.getItem("openInNewTab") === "true") document.getElementById("openInNewTab").checked = true;
