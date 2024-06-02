@@ -1,3 +1,27 @@
 * {
   font-family: "JetBrains Mono Variable", monospace;
 }
+
+*:not(h1) {
+  font-size: 3vh;
+}
+
+input[type="checkbox"] {
+  width: 2.5vh;
+  height: 2.5vh;
+}
+
+.avatar {
+  width: 3vh;
+  height: 3vh;
+
+  border-radius: 50%;
+}
+
+#history > li:nth-child(1) {
+  margin: 2vh 0;
+}
+
+#history > li {
+  margin: 4vh 0;
+}
