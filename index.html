@@ -78,10 +78,14 @@
        * @returns {string} The name of the repository.
        */
       function parseUrl(url) {
-        const name = url.match(/(?:git@|https:\/\/)github.com[:\/](.*)/);
+        url = url.trim();
+        let name = url.match(/(?:git@|https:\/\/)github.com[:\/](.*)\/?/);
 
-        if (name) return name[1].replace(/\.git$/, "");
-        return null;
+        if (!name) return null;
+
+        name = name[1].replace(/\.git$/, "");
+        if (name.endsWith("/")) name = name.slice(0, -1);
+        return name;
       }
 
       /**
