@@ -155,7 +155,10 @@
 
     <script>
       async function onUrlInput() {
-        repoInfo.name = parseUrl(document.querySelector("#url").value);
+        const name = parseUrl(document.querySelector("#url").value);
+        if (repoInfo.name === name) return;
+        repoInfo.name = name;
+
         repoInfo.issues = await fetchIssuesCount();
         document.querySelector("#issues").textContent = repoInfo.issues === -1 ? "..." : repoInfo.issues;
       }
