@@ -25,3 +25,8 @@ input[type="checkbox"] {
 #history > li {
   margin: 4vh 0;
 }
+
+.bottom {
+  display: flex;
+  align-items: end;
+}
