@@ -1,14 +1,33 @@
-* {
-  font-family: "JetBrains Mono Variable", monospace;
+@font-face {
+  font-family: "JetBrains Mono";
+  font-weight: 400;
+  font-style: normal;
+  src: url("fonts/jetbrains-mono-latin-400-normal.woff2") format("woff2"), url("fonts/jetbrains-mono-latin-400-normal.woff") format("woff");
 }
 
-*:not(h1) {
-  font-size: 3vh;
+@font-face {
+  font-family: "JetBrains Mono";
+  font-weight: 700;
+  font-style: normal;
+  src: url("fonts/jetbrains-mono-latin-700-normal.woff2") format("woff2"), url("fonts/jetbrains-mono-latin-700-normal.woff") format("woff");
+}
+
+body {
+  font-family: JetBrains Mono, monospace;
+  font-size: 1.2rem;
+}
+
+button,
+input[type="submit"] {
+  font-family: JetBrains Mono, monospace;
+  font-size: 1.2rem;
+  cursor: pointer;
+  border: none;
 }
 
 input[type="checkbox"] {
-  width: 3vh;
-  height: 3vh;
+  width: 1.2rem;
+  height: 1.2rem;
 }
 
 .avatar {
@@ -29,4 +48,8 @@ input[type="checkbox"] {
 .bottom {
   display: flex;
   align-items: end;
+}
+
+ul li {
+  margin-bottom: 0.5rem;
 }
