@@ -15,6 +15,8 @@
 body {
   font-family: JetBrains Mono, monospace;
   font-size: 1.2rem;
+
+  margin: 2rem;
 }
 
 button,
@@ -52,4 +54,8 @@ input[type="checkbox"] {
 
 ul li {
   margin-bottom: 0.5rem;
+}
+
+#themeButton {
+  font-size: 2rem;
 }
