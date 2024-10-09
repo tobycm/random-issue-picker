@@ -80,17 +80,35 @@
        * Parses the URL of a GitHub repository.
        *
        * @param {string} url The URL of the GitHub repository.
-       * @returns {string} The name of the repository.
+       * @returns {string | null} The name of the repository.
        */
       function parseUrl(url) {
         url = url.trim();
-        let name = url.match(/(?:git@|https:\/\/)github.com[:\/](.*)\/?/);
+
+        // Remove trailing '/issues' if present
+        // url = url.replace(/\/issues\/?$/, "");
+
+        // new regex that matches repo even with .git, /issues, /branch/main etc. at the end
+        let name = url.match(/(?:git@|https:\/\/)github.com[:\/]([^\/\s]+\/[^\/\s]+?)(?:\.git)?(?=\/|$)/);
 
         if (!name) return null;
 
         name = name[1].replace(/\.git$/, "");
         if (name.endsWith("/")) name = name.slice(0, -1);
         return name;
+      }
+
+      /**
+       * Parses the number of pages from the 'Link' header of a GitHub API response.
+       *
+       * @param {string | null} link The 'Link' header of a GitHub API response.
+       * @returns {number} The number of pages in the response.
+       */
+      function parsePageCount(link) {
+        if (!link) return 1;
+
+        const match = link.match(/page=(\d+)>; rel="last"/);
+        return match ? parseInt(match[1], 10) : 1;
       }
 
       /**
@@ -110,10 +128,7 @@
 
           if ((await response.json()).length === 0) return 0;
 
-          const link = response.headers.get("Link");
-          if (!link) return 1;
-
-          return link.match(/page=(\d+)>; rel="last"/)[1];
+          return parsePageCount(response.headers.get("Link"));
         } catch {
           return -1;
         }
@@ -136,10 +151,7 @@
 
           if ((await response.json()).length === 0) return 0;
 
-          const link = response.headers.get("Link");
-          if (!link) return 1;
-
-          return link.match(/page=(\d+)>; rel="last"/)[1];
+          return parsePageCount(response.headers.get("Link"));
         } catch {
           return -1;
         }
@@ -164,7 +176,7 @@
       /**
        * Fetches a random issue from a GitHub repository.
        *
-       * @returns {Promise<Issue>} The random issue url.
+       * @returns {Promise<Issue | null>} The random issue url.
        */
       async function randomIssue() {
         if (repoInfo.issues === -1) return null;
@@ -174,9 +186,8 @@
         else issues = [];
 
         try {
-          const response = await fetch(
-            `https://api.github.com/repos/${repoInfo.name}/issues?per_page=1&page=${Math.floor(Math.random() * repoInfo.issues) + 1}`
-          );
+          const randomPage = Math.floor(Math.random() * repoInfo.issues) + 1;
+          let response = await fetch(`https://api.github.com/repos/${repoInfo.name}/issues?per_page=1&page=${randomPage}`);
 
           if (!response.ok) return null;
 
@@ -184,9 +195,8 @@
           let issue = (await response.json())[0];
 
           while (issues.includes(issue.number) || issue.pull_request) {
-            response = await fetch(
-              `https://api.github.com/repos/${repoInfo.name}/issues?per_page=1&page=${Math.floor(Math.random() * repoInfo.issues) + 1}`
-            );
+            const retryPage = Math.floor(Math.random() * repoInfo.issues) + 1;
+            response = await fetch(`https://api.github.com/repos/${repoInfo.name}/issues?per_page=1&page=${retryPage}`);
             if (!response.ok) return null;
 
             issue = (await response.json())[0];
@@ -238,7 +248,7 @@
        */
 
       function deleteIssue(issueNumber) {
-        const issues = JSON.parse(localStorage.getItem("issues"));
+        const issues = JSON.parse(localStorage.getItem("issues")) || [];
         const newIssues = issues.filter((issue) => issue.number !== issueNumber);
         localStorage.setItem("issues", JSON.stringify(newIssues));
 
@@ -260,12 +270,12 @@
 
         const issueEntry = document.createElement("li");
         issueEntry.innerHTML =
-          `Issue <a href="${issue.html_url}">#${issue.number}</a>: ${issue.title}` +
+          `Issue <a href="${issue.html_url}" target="_blank">#${issue.number}</a>: ${issue.title}` +
           "<br />" +
           '<div class="bottom" style="margin-top: 1vh">' +
-          `Opened by&nbsp<a class="bottom" href="${issue.user.html_url}">` +
-          `<img class="avatar" src="${issue.user.avatar_url}" />` +
-          `&nbsp${issue.user.login}</a>` +
+          `Opened by&nbsp;<a class="bottom" href="${issue.user.html_url}" target="_blank">` +
+          `<img class="avatar" src="${issue.user.avatar_url}" alt="${issue.user.login}'s avatar" />` +
+          `&nbsp;${issue.user.login}</a>` +
           "</div>" +
           `<button style="margin-top: 1vh" onClick="deleteIssue(${issue.number})">Delete</button>`;
 
@@ -276,11 +286,9 @@
         const issue = await randomIssue();
         if (!issue) return;
 
-        const issues = JSON.parse(localStorage.getItem("issues"));
-        if (issues) {
-          issues.push(issue);
-          localStorage.setItem("issues", JSON.stringify(issues));
-        } else localStorage.setItem("issues", JSON.stringify([issue]));
+        const issues = JSON.parse(localStorage.getItem("issues")) || [];
+        issues.push(issue);
+        localStorage.setItem("issues", JSON.stringify(issues));
 
         if (localStorage.getItem("openInNewTab") === "true") window.open(issue.html_url, "_blank");
 
@@ -306,6 +314,7 @@
       <p style="margin-bottom: 1vh">Example URLs:</p>
       <ul style="margin-top: 0">
         <li>https://github.com/oven-sh/bun</li>
+        <li>https://github.com/oven-sh/bun/issues/</li>
         <li>https://github.com/tobycm/akatsuki-du-ca-bot-remastered.git</li>
         <li>git@github.com:pdt1806/discord-status-as-image.git</li>
       </ul>
@@ -318,7 +327,6 @@
 
     <script>
       const issues = JSON.parse(localStorage.getItem("issues"));
-
       if (issues) issues.forEach((issue) => makeIssueEntry(issue));
     </script>
 
@@ -326,11 +334,11 @@
 
     <footer>
       <div class="bottom">
-        Made by&nbsp
+        Made by&nbsp;
         <a class="bottom" href="https://github.com/tobycm"
-          ><img class="avatar" src="https://avatars.githubusercontent.com/u/62174797" />&nbsptobycm</a
+          ><img class="avatar" src="https://avatars.githubusercontent.com/u/62174797" alt="tobycm's avatar" />&nbsp;tobycm</a
         >
-        &nbspwith ❤
+        &nbsp;with ❤
       </div>
       | Copyright © <span id="year">2024</span>
       <br />
@@ -339,6 +347,34 @@
 
     <script>
       document.getElementById("year").textContent = new Date().getFullYear();
+    </script>
+
+    <!-- New Scripts for URL Parameter Handling -->
+    <script>
+      /**
+       * Jobs:
+       *  1. Extracts the repository URL if `url` param is set.
+       *  2. Automatically fetches a random issue `fetch` param is present.
+       *  3. Opens the issue in a new tab if the 'open' param is set.
+       */
+      async function handleUrlQuery() {
+        const urlParams = new URLSearchParams(window.location.search);
+
+        const repo = urlParams.get("url");
+        if (!repo) return;
+
+        document.getElementById("url").value = repo;
+        await onUrlInput();
+
+        if (!urlParams.has("fetch")) return;
+
+        if (urlParams.has("open")) localStorage.setItem("openInNewTab", "true");
+
+        openRandomIssue();
+      }
+
+      // Call the function on page load
+      handleUrlQuery();
     </script>
   </body>
 </html>
